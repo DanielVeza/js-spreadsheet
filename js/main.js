@@ -32,12 +32,11 @@ const LETTER_MAP = {
   25: 'Z'
 };
 
-
-
 const createTable = () => {
   const table = document.createElement('table');
   const tableHeader = document.createElement('thead');
   const tableHeaderRow = document.createElement('tr');
+  const tableBody = document.createElement('tbody');
   table.appendChild(tableHeader);
   tableHeader.appendChild(tableHeaderRow);
   SPREADSHEET_WRAPPER.appendChild(table);
@@ -46,8 +45,9 @@ const createTable = () => {
     th.textContent = convertHeaderNumber(columnIndex);
     tableHeader.appendChild(th);
     const row = createRow(columnIndex);
-    table.appendChild(row);
+    tableBody.appendChild(row);
   }
+  table.appendChild(tableBody);
 }
 
 const createRow = (columnIndex) => {
@@ -57,6 +57,12 @@ const createRow = (columnIndex) => {
     const input = document.createElement('input');
     input.setAttribute('data-row-index', rowIndex);
     input.setAttribute('data-column-index', columnIndex);
+    const cellExistingValue = checkForCellValue(rowIndex, columnIndex);
+    if (cellExistingValue.length > 0) {
+      console.log(cellExistingValue);
+      // 0 seems a little hacky, but is safe here.
+     input.value = cellExistingValue[0].value;
+    }
     input.addEventListener('change', (evt) => setTableValues(evt.target));
     td.appendChild(input)
     tableRow.appendChild(td);
@@ -64,13 +70,19 @@ const createRow = (columnIndex) => {
   return tableRow;
 }
 
+const checkForCellValue = (rowIndex, columnIndex) => {
+  return TABLE_VALUES.filter((value) => {
+    return value.row === rowIndex && value.column === columnIndex;
+  });
+}
+
 const setTableValues = (element) => {
   const value = element.value;
   const rowIndex = element.getAttribute('data-row-index');
   const columnIndex = element.getAttribute('data-column-index');
   TABLE_VALUES.push({
-    row: rowIndex,
-    columnIndex: columnIndex,
+    row: Number(rowIndex),
+    column: Number(columnIndex),
     value: value,
   });
 }
@@ -90,14 +102,16 @@ const convertHeaderNumber = (columnIndex) => {
   const leadingNumber = Math.floor(columnIndex / 26);
   const indexToRemove = 26 * leadingNumber;
   columnIndex -= indexToRemove;
-  console.log(columnIndex, indexToRemove);
-  console.log(LETTER_MAP[columnIndex]);
   // -1 since the map is 0 indexed.
   return `${LETTER_MAP[leadingNumber - 1]}${LETTER_MAP[columnIndex]}`;
 }
 
 REDRAW_BUTTON.addEventListener('click', () => {
-  SPREADSHEET_WRAPPER.querySelector('table').remove();
-  createTable();
+  const table = SPREADSHEET_WRAPPER.querySelector('table');
+  // The remove and redraw takes a few secs, so lets hide the table until the new one is redrawn.
+  table.classList.add('hidden');
+  table.remove();
+  // This is silly. You get no feedback on the refresh without this.
+  setTimeout(() => createTable(), 1000);
 });
 createTable();
